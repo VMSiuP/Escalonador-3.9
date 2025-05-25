@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Escalonador Siu</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
@@ -17,6 +18,7 @@
       --btn-copy: #ffc107;
       --shadow: rgba(0, 0, 0, 0.08);
     }
+
     [data-theme="dark"] {
       --bg: #121212;
       --text: #f5f5f5;
@@ -28,26 +30,284 @@
       --btn-copy: #e2c049;
       --shadow: rgba(255, 255, 255, 0.05);
     }
+
     body {
-      font-family: sans-serif;
+      font-family: 'Poppins', sans-serif;
       margin: 0;
       padding: 0;
       background-color: var(--bg);
       color: var(--text);
       transition: background-color 0.3s, color 0.3s;
     }
-    /* (rest of the original CSS unchanged) */
+
+    .container {
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: var(--card);
+      box-shadow: 0 4px 12px var(--shadow);
+      border-radius: 16px;
+      transition: background 0.3s;
+    }
+
+    h1, h2 {
+      text-align: center;
+      margin-bottom: 0.5rem;
+      font-size: 1.6rem;
+      font-weight: 600;
+    }
+
+    label {
+      display: block;
+      margin: 1rem 0 0.5rem;
+      font-weight: 500;
+    }
+
+    input[type="number"] {
+      width: 48%;
+      padding: 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: var(--input);
+      color: var(--text);
+      transition: background 0.3s, color 0.3s;
+    }
+
+    input[type="number"]::placeholder {
+      color: #aaa;
+    }
+
+    .flex-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 4%;
+    }
+
+    button {
+      margin-top: 1rem;
+      padding: 0.8rem 1.2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--btn-primary);
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background-color: var(--btn-secondary);
+      color: #fff;
+    }
+
+    .btn-copy {
+      background-color: var(--btn-copy);
+      color: #000;
+    }
+
+    .btn-primary:hover,
+    .btn-secondary:hover,
+    .btn-copy:hover {
+      opacity: 0.9;
+    }
+
+    .result-block {
+      margin-top: 1.5rem;
+      background: var(--input);
+      padding: 1rem;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      transition: background 0.3s;
+    }
+
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    @media (min-width: 480px) {
+      .actions {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+    }
+
+    .theme-toggle {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    .theme-toggle input {
+      transform: scale(1.2);
+      margin-left: 0.5rem;
+    }
   </style>
 </head>
 <body data-theme="light">
-  <!-- (original HTML body content unchanged) -->
-  <!-- Service Worker Registration -->
+  <div class="container">
+    <div class="theme-toggle">
+      <label>
+        Modo oscuro
+        <input type="checkbox" id="toggleTema" onchange="cambiarTema()" />
+      </label>
+    </div>
+
+    <h1>Víctor Siu</h1>
+    <h2>Escalonador de penas</h2>
+
+    <label>Extremo mínimo:</label>
+    <div class="flex-row">
+      <input type="number" id="minimoAnos" min="0" placeholder="Años" />
+      <input type="number" id="minimoMeses" min="0" max="11" placeholder="Meses" />
+    </div>
+
+    <label>Extremo máximo:</label>
+    <div class="flex-row">
+      <input type="number" id="maximoAnos" min="0" placeholder="Años" />
+      <input type="number" id="maximoMeses" min="0" max="11" placeholder="Meses" />
+    </div>
+
+    <label for="agravantes">Cantidad de agravantes del tipo penal:</label>
+    <input type="number" id="agravantes" min="1" max="20" value="" />
+
+    <label for="cantidadAplicar">Cantidad de agravantes del caso concreto:</label>
+    <input type="number" id="cantidadAplicar" min="1" value="" />
+
+    <button class="btn-primary" onclick="calcular()">Calcular</button>
+
+    <div class="result-block" id="resultado"></div>
+
+    <div class="actions">
+      <button class="btn-copy" onclick="copiarResultado()">Copiar resultado</button>
+      <button class="btn-secondary" onclick="compartirWhatsApp()">Compartir por WhatsApp</button>
+      <button class="btn-primary" onclick="volverInicio()">Nuevo cálculo</button>
+    </div>
+  </div>
+
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js');
+    let textoCompartir = "";
+
+    // Limita los valores de los campos de meses a un máximo de 11
+    function limitarMeses(id) {
+      const campo = document.getElementById(id);
+      campo.addEventListener('input', () => {
+        let valor = parseInt(campo.value);
+        if (valor > 11) campo.value = 11;
+        if (valor < 0) campo.value = 0;
       });
     }
+
+    function convertirADesglose(aniosDecimales) {
+      let años = Math.floor(aniosDecimales);
+      let mesesDec = (aniosDecimales - años) * 12;
+      let meses = Math.floor(mesesDec);
+      let dias = Math.round((mesesDec - meses) * 30);
+
+      if (dias >= 30) {
+        dias -= 30;
+        meses += 1;
+      }
+      if (meses >= 12) {
+        meses -= 12;
+        años += 1;
+      }
+
+      return { años, meses, dias };
+    }
+
+    function calcular() {
+      const minimo = parseFloat(document.getElementById("minimoAnos").value) + (parseFloat(document.getElementById("minimoMeses").value) || 0) / 12;
+      const maximo = parseFloat(document.getElementById("maximoAnos").value) + (parseFloat(document.getElementById("maximoMeses").value) || 0) / 12;
+      if (minimo > maximo) {
+        alert("El extremo mínimo no puede ser mayor que el extremo máximo.");
+        return;
+      }
+
+      const agravantes = parseInt(document.getElementById("agravantes").value);
+      const cantidad = parseInt(document.getElementById("cantidadAplicar").value);
+
+      if (isNaN(minimo) || isNaN(maximo) || isNaN(agravantes) || isNaN(cantidad) ||
+          agravantes < 1 || agravantes > 20 || cantidad < 1 || cantidad > agravantes) {
+        alert("Por favor, introduce valores válidos.");
+        return;
+      }
+
+      const diferencia = Math.abs(maximo - minimo);
+      const unidad = diferencia / agravantes;
+      const incremento = unidad * cantidad;
+      const nuevoValorDecimal = minimo + incremento;
+
+      const desgloseUnidad = convertirADesglose(unidad);
+      const desgloseIncremento = convertirADesglose(incremento);
+      const desgloseFinal = convertirADesglose(nuevoValorDecimal);
+
+      textoCompartir =
+        `Cálculo cortesía de Víctor Siu\n` +
+        `Valor de cada agravante: ${desgloseUnidad.años}a ${desgloseUnidad.meses}m ${desgloseUnidad.dias}d\n` +
+        `Incremento (${cantidad}): ${desgloseIncremento.años}a ${desgloseIncremento.meses}m ${desgloseIncremento.dias}d\n` +
+        `Pena concreta: ${desgloseFinal.años}a ${desgloseFinal.meses}m ${desgloseFinal.dias}d`;
+
+      document.getElementById("resultado").innerHTML = `
+        <strong>Valor de cada agravante:</strong> ${desgloseUnidad.años} años, ${desgloseUnidad.meses} meses, ${desgloseUnidad.dias} días<br>
+        <strong>Incremento por ${cantidad} agravante(s):</strong> ${desgloseIncremento.años} años, ${desgloseIncremento.meses} meses, ${desgloseIncremento.dias} días<br>
+        <strong>Pena concreta:</strong> ${desgloseFinal.años} años, ${desgloseFinal.meses} meses, ${desgloseFinal.dias} días
+      `;
+    }
+
+    function copiarResultado() {
+      navigator.clipboard.writeText(textoCompartir)
+        .then(() => alert("Resultado copiado al portapapeles"))
+        .catch(() => alert("Error al copiar el texto"));
+    }
+
+    function compartirWhatsApp() {
+      const mensaje = encodeURIComponent(textoCompartir);
+      const url = `https://wa.me/?text=${mensaje}`;
+      window.open(url, '_blank');
+    }
+
+    function cambiarTema() {
+      const isDark = document.getElementById('toggleTema').checked;
+      const theme = isDark ? 'dark' : 'light';
+      document.body.setAttribute('data-theme', theme);
+      localStorage.setItem('tema', theme);
+    }
+
+    function volverInicio() {
+      document.getElementById("minimoAnos").value = "";
+      document.getElementById("minimoMeses").value = "";
+      document.getElementById("maximoAnos").value = "";
+      document.getElementById("maximoMeses").value = "";
+      document.getElementById("agravantes").value = "";
+      document.getElementById("cantidadAplicar").value = "";
+      document.getElementById("resultado").innerHTML = "";
+      textoCompartir = "";
+      document.getElementById("toggleTema").checked = false;
+      document.body.setAttribute('data-theme', 'light');
+      localStorage.setItem('tema', 'light');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      limitarMeses("minimoMeses");
+      limitarMeses("maximoMeses");
+
+      const temaGuardado = localStorage.getItem('tema');
+      if (temaGuardado) {
+        const usarOscuro = temaGuardado === 'dark';
+        document.body.setAttribute('data-theme', usarOscuro ? 'dark' : 'light');
+        document.getElementById('toggleTema').checked = usarOscuro;
+      } else {
+        const usaPrefSistema = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.body.setAttribute('data-theme', usaPrefSistema ? 'dark' : 'light');
+        document.getElementById('toggleTema').checked = usaPrefSistema;
+      }
+    });
   </script>
 </body>
 </html>

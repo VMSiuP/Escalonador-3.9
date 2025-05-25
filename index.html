@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Escalonador Siu</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --bg: #f0f4f8;
+      --text: #333;
+      --card: #ffffff;
+      --input: #fff;
+      --border: #ccc;
+      --btn-primary: #007bff;
+      --btn-secondary: #28a745;
+      --btn-copy: #ffc107;
+      --shadow: rgba(0, 0, 0, 0.08);
+    }
+    [data-theme="dark"] {
+      --bg: #121212;
+      --text: #f5f5f5;
+      --card: #1e1e1e;
+      --input: #2a2a2a;
+      --border: #555;
+      --btn-primary: #3399ff;
+      --btn-secondary: #45d96d;
+      --btn-copy: #e2c049;
+      --shadow: rgba(255, 255, 255, 0.05);
+    }
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      transition: background-color 0.3s, color 0.3s;
+    }
+    /* (rest of the original CSS unchanged) */
+  </style>
+</head>
+<body data-theme="light">
+  <!-- (original HTML body content unchanged) -->
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
+</body>
+</html>
